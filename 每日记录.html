@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>每日</title>
+  <style>
+    :root{
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted:#6b7280;
+      --line: #e5e7eb;
+
+      --work: #2563eb;   /* 蓝 */
+      --study:#7c3aed;   /* 紫 */
+
+      --urgent:#ef4444;  /* 红 */
+      --normal:#10b981;  /* 绿 */
+
+      --donebg:#ecfdf5;  /* 淡绿 */
+      --doneborder:#a7f3d0;
+      --pendingbg:#ffffff;
+
+      --shadow: 0 10px 30px rgba(17, 24, 39, .08);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      padding:24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1000px 500px at 15% 0%, rgba(37,99,235,.10), transparent 60%),
+      radial-gradient(1000px 500px at 85% 0%, rgba(124,58,237,.10), transparent 60%),
+      var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .wrap{ max-width: 980px; margin: 0 auto; }
+    h1{ margin: 0 0 8px; font-size: 24px; }
+    .sub{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .toolbar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      padding: 12px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    input, select, button{
+      padding: 11px 12px;
+      font-size: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+    input::placeholder{ color: #9ca3af; }
+    input[type="text"], input[type="url"]{ flex: 1; min-width: 220px; }
+    select{ min-width: 120px; }
+    button{ cursor:pointer; }
+    button.primary{
+      background: #111827;
+      color: #fff;
+      border-color: #111827;
+    }
+    button.primary:hover{ filter: brightness(1.05); }
+    button.danger{
+      background: #fff;
+      border-color: rgba(239,68,68,.45);
+      color: #b91c1c;
+    }
+    button.danger:hover{ background: rgba(239,68,68,.06); }
+    button.ghost{ background: transparent; }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .row2{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top: 10px; }
+    .hint{ color: var(--muted); font-size: 12px; }
+    .file{ display:none; }
+
+    .grid{ display:grid; grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
+
+    .cardBox{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .cardBox h2{
+      margin:0 0 10px;
+      font-size: 16px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .count.work{ border-color: rgba(37,99,235,.25); color: var(--work); background: rgba(37,99,235,.08); }
+    .count.study{ border-color: rgba(124,58,237,.25); color: var(--study); background: rgba(124,58,237,.08); }
+
+    ul{ list-style:none; padding:0; margin:0; }
+
+    /* ====== 每一行任务：清晰、彩色、对比强 ====== */
+    li.task{
+      display:grid;
+      grid-template-columns: 34px 1fr auto auto auto;
+      gap: 10px;
+      align-items:center;
+
+      border-radius: 14px;
+      padding: 12px 12px;
+      margin: 10px 0;
+      border: 1px solid var(--line);
+      background: var(--pendingbg);
+      position: relative;
+      box-shadow: 0 8px 20px rgba(17,24,39,.06);
+    }
+    li.task:hover{ transform: translateY(-1px); transition: .12s; }
+
+    li.task::before{
+      content:"";
+      position:absolute;
+      left:0; top:10px; bottom:10px;
+      width:7px;
+      border-radius: 999px;
+      background: #d1d5db;
+    }
+
+    /* 类别色：工作/学习决定默认色条 */
+    li.task.work::before{ background: rgba(37,99,235,.95); }
+    li.task.study::before{ background: rgba(124,58,237,.95); }
+
+    /* 紧急覆盖：更醒目 */
+    li.task.urgent::before{ background: rgba(239,68,68,.98); }
+
+    /* 未完成：标题更粗更黑 */
+    li.task.pending .title{
+      font-weight: 850;
+      color: #111827;
+    }
+    li.task.pending{
+      background: #fff7ed;
+      border-color: #fdba74;
+      box-shadow: 0 8px 22px rgba(251,146,60,.20);
+    }
+    li.task.pending::before{
+      background: linear-gradient(180deg, rgba(251,146,60,.95), rgba(249,115,22,.95));
+    }
+
+    /* 已完成：整行淡绿底 + 灰字 + 删除线 + 更弱阴影 */
+    li.task.done{
+      background: var(--donebg);
+      border-color: var(--doneborder);
+      box-shadow: 0 4px 12px rgba(16,185,129,.10);
+      opacity: .90;
+    }
+    li.task.done .title{
+      text-decoration: line-through;
+      color: #6b7280;
+      font-weight: 700;
+    }
+
+    .title{
+      font-size: 15px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .meta{
+      grid-column: 2 / span 4;
+      color: var(--muted);
+      font-size: 12px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #374151;
+      white-space: nowrap;
+    }
+    .badge.pending{ border-color: rgba(17,24,39,.18); background: #fff; }
+    .task.pending .badge.pending{
+      border-color: rgba(249,115,22,.45);
+      background: rgba(249,115,22,.15);
+      color: #9a3412;
+      font-weight: 700;
+    }
+    .badge.done{ border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); color: #065f46; }
+    .badge.urgent{ border-color: rgba(239,68,68,.40); background: rgba(239,68,68,.10); color: #991b1b; }
+
+    .sectionLabel{
+      margin: 10px 0 4px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #111827;
+      background: #f3f4f6;
+      border: 1px dashed var(--line);
+    }
+    .sectionLabel.pending{
+      background: #fff7ed;
+      border-color: rgba(249,115,22,.4);
+      color: #9a3412;
+    }
+    .sectionLabel.done{
+      background: #ecfdf5;
+      border-color: rgba(16,185,129,.35);
+      color: #065f46;
+    }
+
+    .btn{
+      padding: 8px 10px;
+      font-size: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      white-space: nowrap;
+    }
+    .btn.open{
+      border-color: rgba(37,99,235,.25);
+      background: rgba(37,99,235,.06);
+      color: #1d4ed8;
+    }
+    .btn.del{
+      border-color: rgba(239,68,68,.35);
+      background: rgba(239,68,68,.06);
+      color: #b91c1c;
+    }
+
+    .note{
+      margin-top: 12px;
+      color: #374151;
+      font-size: 12px;
+      border-left: 4px solid rgba(37,99,235,.55);
+      padding-left: 10px;
+    }
+
+    /* 手机只读查看模式 */
+    body.mobile-view .toolbar,
+    body.mobile-view .auth,
+    body.mobile-view .row2,
+    body.mobile-view .grid,
+    body.mobile-view .note{
+      display:none;
+    }
+    body.mobile-view #mobileView{
+      display:block;
+    }
+    body.mobile-view #mobileView .note{
+      display:block;
+    }
+    body.mobile-view #mobileView .mobile-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .auth{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      padding: 12px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+    .auth input{
+      min-width: 200px;
+      flex: 1;
+    }
+    .auth .status{
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>每日 </h1>
+
+  <div class="auth">
+    <input id="authEmail" type="email" placeholder="邮箱（用于多设备同步）" />
+    <input id="authPassword" type="password" placeholder="密码" />
+    <button id="loginBtn" class="primary">登录</button>
+    <button id="registerBtn">注册</button>
+    <button id="logoutBtn" class="ghost" style="display:none;">退出</button>
+    <span class="status" id="authStatus">未登录（本地模式）</span>
+  </div>
+
+  <div class="sub">
+    <span id="todayText"></span>
+    <span class="pill">历史日期：</span>
+    <select id="datePicker"></select>
+    <button class="ghost" id="goToday">回到今天</button>
+  </div>
+
+  <div class="toolbar">
+    <select id="category">
+      <option value="work">工作</option>
+      <option value="study">学习</option>
+    </select>
+
+    <select id="priority">
+      <option value="normal">不紧急</option>
+      <option value="urgent">紧急</option>
+    </select>
+
+    <input id="taskTitle" type="text" placeholder="事项（例如：写周报 / 刷算法）" />
+    <input id="taskLink" type="url" placeholder="可选：学习/资料链接（https://...）" />
+    <button class="primary" id="addBtn">添加</button>
+    <button class="danger" id="clearDayBtn">清空当天</button>
+  </div>
+
+  <div class="row2">
+    <button id="exportBtn">导出备份（JSON）</button>
+    <button id="importBtn">导入恢复（JSON）</button>
+    <input class="file" id="importFile" type="file" accept="application/json" />
+    <label class="pill">
+      <input id="pendingOnlyToggle" type="checkbox" />
+      仅看待完成
+    </label>
+    <button id="exportIcsBtn">导出学习提醒（22:55，10分钟）</button>
+    <span class="hint">提示：清浏览器缓存会丢本地数据；想彻底不丢请定期导出备份，或接云端（Firebase/Supabase）。</span>
+  </div>
+
+  <div class="row2">
+    <button id="makeMobileLinkBtn">生成手机查看链接</button>
+    <input id="mobileLink" type="text" readonly placeholder="这里会生成链接（用于手机查看执行情况）" />
+    <button id="copyMobileLinkBtn">复制链接</button>
+    <span class="hint">22:55 自动生成并尝试复制到剪贴板（建议立刻发到手机）。</span>
+  </div>
+
+  <div class="grid">
+    <div class="cardBox">
+      <h2>工作 <span class="pill count work" id="workCount">0</span></h2>
+      <ul id="workList"></ul>
+    </div>
+
+    <div class="cardBox">
+      <h2>学习 <span class="pill count study" id="studyCount">0</span></h2>
+      <ul id="studyList"></ul>
+    </div>
+  </div>
+
+  <div class="note">
+    ✅ 每一行任务：白底卡片 + 彩色条 + 徽章（待完成/已完成/紧急）非常清晰。<br/>
+    ✅ 排序：紧急未完成置顶，已完成沉底。<br/>
+    ✅ 历史：按日期保存；支持 JSON 导出/导入备份。
+  </div>
+
+  <div id="mobileView" class="cardBox" style="display:none;">
+    <h2>今日执行情况</h2>
+    <div class="sub">
+      <span class="pill" id="mobileSummary"></span>
+    </div>
+    <div class="mobile-grid">
+      <div class="cardBox">
+        <h2>工作 <span class="pill count work" id="mobileWorkCount">0</span></h2>
+        <ul id="mobileWorkList"></ul>
+      </div>
+      <div class="cardBox">
+        <h2>学习 <span class="pill count study" id="mobileStudyCount">0</span></h2>
+        <ul id="mobileStudyList"></ul>
+      </div>
+    </div>
+    <div class="note" id="mobileNote"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+  // TODO: 替换为你自己的 Firebase 配置
+  const firebaseConfig = {
+    apiKey: "AIzaSyDF8CRNbkEFDKPodCanwL7TWNxPBZFtVSE",
+    authDomain: "daily-plan-2c071.firebaseapp.com",
+    projectId: "daily-plan-2c071",
+    storageBucket: "daily-plan-2c071.firebasestorage.app",
+    messagingSenderId: "5749935150",
+    appId: "1:5749935150:web:8d40f44a52fcba0221a3bf",
+    measurementId: "G-CB5FYSXN2M"
+  };
+
+  const firebaseApp = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(firebaseApp);
+  const db = getFirestore(firebaseApp);
+
+  const STORAGE_KEY = "daily_planner_color_clear_v1";
+  const el = (id) => document.getElementById(id);
+
+  function pad(n){ return String(n).padStart(2, "0"); }
+  function dateKey(d = new Date()){
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  function pretty(dkey){
+    const [y,m,dd] = dkey.split("-");
+    return `${y}年${m}月${dd}日`;
+  }
+  function uid(){
+    return Math.random().toString(16).slice(2) + Date.now().toString(16);
+  }
+  function escapeIcs(text){
+    return String(text || "")
+      .replace(/\\/g, "\\\\")
+      .replace(/\n/g, "\\n")
+      .replace(/,/g, "\\,")
+      .replace(/;/g, "\\;");
+  }
+  function toIcsDate(dkey, hh, mm){
+    return dkey.replace(/-/g, "") + "T" + pad(hh) + pad(mm) + "00";
+  }
+  function sanitizeUrl(url){
+    if (!url) return "";
+    try { return new URL(url).toString(); } catch { return ""; }
+  }
+  function encodePayload(obj){
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  }
+  function decodePayload(str){
+    return JSON.parse(decodeURIComponent(escape(atob(str))));
+  }
+
+  let authUser = null;
+  let cloudDocRef = null;
+  let cloudUnsub = null;
+  let suppressCloudSave = false;
+  let cloudSaveTimer = null;
+
+  function setAuthStatus(text){
+    const elStatus = el("authStatus");
+    if (elStatus) elStatus.textContent = text;
+  }
+
+  function setAuthUi(user){
+    const loginBtn = el("loginBtn");
+    const registerBtn = el("registerBtn");
+    const logoutBtn = el("logoutBtn");
+    if (!loginBtn || !registerBtn || !logoutBtn) return;
+    if (user){
+      loginBtn.style.display = "none";
+      registerBtn.style.display = "none";
+      logoutBtn.style.display = "inline-flex";
+    } else {
+      loginBtn.style.display = "inline-flex";
+      registerBtn.style.display = "inline-flex";
+      logoutBtn.style.display = "none";
+    }
+  }
+
+  function saveStateLocalOnly(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function scheduleCloudSave(){
+    if (!cloudDocRef || suppressCloudSave) return;
+    if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(async ()=>{
+      try{
+        const payload = JSON.parse(JSON.stringify(state));
+        await setDoc(cloudDocRef, { state: payload, updatedAt: serverTimestamp() }, { merge: false });
+      }catch{
+        setAuthStatus("云端保存失败（网络或权限问题）");
+      }
+    }, 800);
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return { archives: {}, lastViewedDate: dateKey() };
+      const s = JSON.parse(raw);
+      if (!s.archives) s.archives = {};
+      if (!s.lastViewedDate) s.lastViewedDate = dateKey();
+      if (typeof s.showPendingOnly !== "boolean") s.showPendingOnly = false;
+      if (!s.lastMobileLinkDate) s.lastMobileLinkDate = "";
+      if (!s.lastMobileLink) s.lastMobileLink = "";
+      if (!s.lastAlertDate) s.lastAlertDate = "";
+      if (!s._updatedAt) s._updatedAt = 0;
+      return s;
+    }catch{
+      return { archives: {}, lastViewedDate: dateKey() };
+    }
+  }
+  function saveState(){
+    state._updatedAt = Date.now();
+    saveStateLocalOnly();
+    scheduleCloudSave();
+  }
+
+  let hasInitialSnapshot = false;
+
+  function startCloudSync(user){
+    if (cloudUnsub) cloudUnsub();
+    hasInitialSnapshot = false;
+    cloudDocRef = doc(db, "users", user.uid, "daily", "state");
+    cloudUnsub = onSnapshot(cloudDocRef, (snap)=>{
+      const localUpdatedAt = state._updatedAt || 0;
+      if (!snap.exists()){
+        if (!hasInitialSnapshot){
+          hasInitialSnapshot = true;
+          scheduleCloudSave();
+          setAuthStatus("已登录（本地→云端初始化）");
+        }
+        return;
+      }
+
+      const data = snap.data();
+      const remoteState = data && data.state;
+      if (!remoteState) return;
+      const remoteUpdatedAt = remoteState._updatedAt || 0;
+
+      if (!hasInitialSnapshot){
+        hasInitialSnapshot = true;
+        if (remoteUpdatedAt >= localUpdatedAt){
+          suppressCloudSave = true;
+          state = remoteState;
+          saveStateLocalOnly();
+          render();
+          suppressCloudSave = false;
+          setAuthStatus("已同步（云端→本地）");
+        } else {
+          scheduleCloudSave();
+          setAuthStatus("已同步（本地→云端）");
+        }
+        return;
+      }
+
+      if (remoteUpdatedAt > localUpdatedAt){
+        suppressCloudSave = true;
+        state = remoteState;
+        saveStateLocalOnly();
+        render();
+        suppressCloudSave = false;
+        setAuthStatus("已同步（云端→本地）");
+      }
+    }, ()=>{
+      setAuthStatus("云端同步失败（网络或权限问题）");
+    });
+  }
+  function ensureDate(dkey){
+    if(!state.archives[dkey]) state.archives[dkey] = [];
+  }
+  function getCurrentDate(){
+    return el("datePicker").value || dateKey();
+  }
+
+  function refreshDatePicker(){
+    const picker = el("datePicker");
+    const keys = Object.keys(state.archives).sort().reverse();
+    const today = dateKey();
+    ensureDate(today);
+    if (!keys.includes(today)) keys.unshift(today);
+
+    picker.innerHTML = "";
+    keys.forEach(k => {
+      const opt = document.createElement("option");
+      opt.value = k;
+      opt.textContent = k === today ? `今天 · ${pretty(k)}` : pretty(k);
+      picker.appendChild(opt);
+    });
+
+    const target = state.lastViewedDate && (state.lastViewedDate in state.archives) ? state.lastViewedDate : today;
+    picker.value = target;
+  }
+
+  function addTask(){
+    const dkey = getCurrentDate();
+    ensureDate(dkey);
+
+    const category = el("category").value;
+    const priority = el("priority").value;
+    const title = el("taskTitle").value.trim();
+    const link = sanitizeUrl(el("taskLink").value.trim());
+    if(!title) return;
+
+    state.archives[dkey].push({
+      id: uid(),
+      category,
+      title,
+      link,
+      done: false,
+      priority
+    });
+
+    el("taskTitle").value = "";
+    el("taskLink").value = "";
+    state.lastViewedDate = dkey;
+    saveState();
+    render();
+  }
+
+  function toggleDone(dkey, id){
+    const t = state.archives[dkey].find(x => x.id === id);
+    if(!t) return;
+    t.done = !t.done;
+    saveState();
+    render();
+  }
+
+  function removeTask(dkey, id){
+    state.archives[dkey] = state.archives[dkey].filter(x => x.id !== id);
+    saveState();
+    render();
+  }
+
+  function clearDay(){
+    const dkey = getCurrentDate();
+    if (!confirm(`确认清空：${pretty(dkey)} 的所有事项？`)) return;
+    state.archives[dkey] = [];
+    saveState();
+    render();
+  }
+
+  function renderList(listEl, tasks, dkey){
+    listEl.innerHTML = "";
+
+    tasks.forEach(t => { if(!t.priority) t.priority = "normal"; });
+
+    const pendingTasks = tasks
+      .filter(t=>!t.done)
+      .slice()
+      .sort((a,b)=>{
+        const ap = (a.priority === "urgent") ? 0 : 1;
+        const bp = (b.priority === "urgent") ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        return 0;
+      });
+    const doneTasks = tasks.filter(t=>t.done);
+
+    if (pendingTasks.length) {
+      const label = document.createElement("li");
+      label.className = "sectionLabel pending";
+      label.textContent = `待完成 · ${pendingTasks.length} 项`;
+      listEl.appendChild(label);
+    }
+
+    pendingTasks.forEach(t=>{
+        const li = document.createElement("li");
+        li.className = `task ${t.category} ${t.done ? "done" : "pending"} ${t.priority || "normal"}`;
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = t.done;
+        checkbox.addEventListener("change", ()=>toggleDone(dkey, t.id));
+
+        const title = document.createElement("div");
+        title.className = "title";
+        title.textContent = t.title;
+
+        const badge = document.createElement("span");
+        badge.className = "badge " + (t.done ? "done" : "pending");
+        badge.textContent = t.done ? "✅ 已完成" : "⬜ 待完成";
+        if (t.priority === "urgent") {
+          badge.className += " urgent";
+          badge.textContent = "🔥 紧急 · " + badge.textContent;
+        }
+
+        const openBtn = document.createElement("button");
+        openBtn.className = "btn open";
+        openBtn.textContent = t.link ? "打开链接" : "无链接";
+        openBtn.disabled = !t.link;
+        openBtn.addEventListener("click", ()=>{
+          if(t.link) window.open(t.link, "_blank", "noopener,noreferrer");
+        });
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn del";
+        delBtn.textContent = "删除";
+        delBtn.addEventListener("click", ()=>removeTask(dkey, t.id));
+
+        li.appendChild(checkbox);
+        li.appendChild(title);
+        li.appendChild(badge);
+        li.appendChild(openBtn);
+        li.appendChild(delBtn);
+
+        if(t.link){
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = t.link;
+          li.appendChild(meta);
+        }
+
+        listEl.appendChild(li);
+    });
+
+    if (doneTasks.length) {
+      const label = document.createElement("li");
+      label.className = "sectionLabel done";
+      label.textContent = `已完成 · ${doneTasks.length} 项`;
+      listEl.appendChild(label);
+    }
+
+    doneTasks.forEach(t=>{
+      const li = document.createElement("li");
+      li.className = `task ${t.category} done ${t.priority || "normal"}`;
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.addEventListener("change", ()=>toggleDone(dkey, t.id));
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = t.title;
+
+      const badge = document.createElement("span");
+      badge.className = "badge done";
+      badge.textContent = "✅ 已完成";
+      if (t.priority === "urgent") {
+        badge.className += " urgent";
+        badge.textContent = "🔥 紧急 · " + badge.textContent;
+      }
+
+      const openBtn = document.createElement("button");
+      openBtn.className = "btn open";
+      openBtn.textContent = t.link ? "打开链接" : "无链接";
+      openBtn.disabled = !t.link;
+      openBtn.addEventListener("click", ()=>{
+        if(t.link) window.open(t.link, "_blank", "noopener,noreferrer");
+      });
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn del";
+      delBtn.textContent = "删除";
+      delBtn.addEventListener("click", ()=>removeTask(dkey, t.id));
+
+      li.appendChild(checkbox);
+      li.appendChild(title);
+      li.appendChild(badge);
+      li.appendChild(openBtn);
+      li.appendChild(delBtn);
+
+      if(t.link){
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = t.link;
+        li.appendChild(meta);
+      }
+
+      listEl.appendChild(li);
+    });
+  }
+
+  function render(){
+    const dkey = getCurrentDate();
+    ensureDate(dkey);
+
+    el("todayText").textContent = `当前查看：${pretty(dkey)}（今日：${pretty(dateKey())}）`;
+
+    const tasks = state.archives[dkey];
+    tasks.forEach(t => { if(!t.priority) t.priority = "normal"; });
+
+    const workAll = tasks.filter(t=>t.category==="work");
+    const studyAll = tasks.filter(t=>t.category==="study");
+
+    const showPendingOnly = !!state.showPendingOnly;
+    const work = showPendingOnly ? workAll.filter(t=>!t.done) : workAll;
+    const study = showPendingOnly ? studyAll.filter(t=>!t.done) : studyAll;
+
+    renderList(el("workList"), work, dkey);
+    renderList(el("studyList"), study, dkey);
+
+    const workPending = workAll.filter(t=>!t.done).length;
+    const studyPending = studyAll.filter(t=>!t.done).length;
+    el("workCount").textContent = `待完成 ${workPending}/${workAll.length}`;
+    el("studyCount").textContent = `待完成 ${studyPending}/${studyAll.length}`;
+
+    state.lastViewedDate = dkey;
+    saveState();
+
+    refreshDatePicker();
+  }
+
+  // 导出/导入
+  function exportJson(){
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `每日计划备份_${dateKey()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function exportStudyIcs(){
+    const lines = [];
+    lines.push("BEGIN:VCALENDAR");
+    lines.push("VERSION:2.0");
+    lines.push("PRODID:-//daily-planner//study-reminder//CN");
+    lines.push("CALSCALE:GREGORIAN");
+
+    const keys = Object.keys(state.archives).sort();
+    const now = new Date();
+    const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth()+1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+
+    keys.forEach(k=>{
+      const tasks = (state.archives[k] || []).filter(t=>t.category==="study" && !t.done);
+      if (!tasks.length) return;
+      const summary = `学习待完成 ${tasks.length} 项`;
+      const desc = tasks.map(t=>`- ${t.title}`).join("\n");
+      const start = toIcsDate(k, 22, 55);
+      const end = toIcsDate(k, 23, 5);
+      const uidStr = `${k.replace(/-/g,"")}-study-${uid()}@daily-planner`;
+
+      lines.push("BEGIN:VEVENT");
+      lines.push(`UID:${uidStr}`);
+      lines.push(`DTSTAMP:${dtstamp}`);
+      lines.push(`DTSTART:${start}`);
+      lines.push(`DTEND:${end}`);
+      lines.push(`SUMMARY:${escapeIcs(summary)}`);
+      lines.push(`DESCRIPTION:${escapeIcs(desc)}`);
+      lines.push("END:VEVENT");
+    });
+
+    lines.push("END:VCALENDAR");
+
+    const ics = lines.join("\r\n");
+    const blob = new Blob([ics], { type: "text/calendar" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `每日学习提醒_2255_10min_${dateKey()}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function getPendingStudy(dkey){
+    ensureDate(dkey);
+    return (state.archives[dkey] || []).filter(t=>t.category==="study" && !t.done);
+  }
+
+  function buildMobileLink(dkey){
+    ensureDate(dkey);
+    const tasks = (state.archives[dkey] || []).map(t=>({
+      title: t.title,
+      category: t.category || "study",
+      priority: t.priority || "normal",
+      done: !!t.done
+    }));
+    const payload = { date: dkey, tasks };
+    const encoded = encodeURIComponent(encodePayload(payload));
+    return `${location.origin}${location.pathname}#view=${encoded}`;
+  }
+
+  async function copyText(text){
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch{
+      return false;
+    }
+  }
+
+  async function generateMobileLink(opts = {}){
+    const dkey = getCurrentDate();
+    const link = buildMobileLink(dkey);
+    el("mobileLink").value = link;
+    state.lastMobileLink = link;
+    state.lastMobileLinkDate = dkey;
+    saveState();
+    if (opts.copy) {
+      await copyText(link);
+    }
+  }
+
+  function renderMobileViewFromHash(){
+    const hash = location.hash || "";
+    if (!hash.startsWith("#view=")) return false;
+    try{
+      const raw = decodeURIComponent(hash.slice(6));
+      const payload = decodePayload(raw);
+      document.body.classList.add("mobile-view");
+
+      let tasks = [];
+      if (Array.isArray(payload.tasks)) {
+        tasks = payload.tasks;
+      } else if (Array.isArray(payload.items)) {
+        tasks = payload.items.map(item=>({
+          title: item.title,
+          category: "study",
+          priority: item.priority || "normal",
+          done: false
+        }));
+      }
+
+      tasks.forEach(t=>{
+        if (!t.category) t.category = "study";
+        if (!t.priority) t.priority = "normal";
+        t.done = !!t.done;
+      });
+
+      const workAll = tasks.filter(t=>t.category === "work");
+      const studyAll = tasks.filter(t=>t.category === "study");
+      const workPending = workAll.filter(t=>!t.done).length;
+      const studyPending = studyAll.filter(t=>!t.done).length;
+      const total = tasks.length;
+      const doneTotal = tasks.filter(t=>t.done).length;
+
+      el("mobileSummary").textContent = total ? `已完成 ${doneTotal}/${total}` : "今日无事项";
+      el("mobileWorkCount").textContent = `待完成 ${workPending}/${workAll.length}`;
+      el("mobileStudyCount").textContent = `待完成 ${studyPending}/${studyAll.length}`;
+
+      function renderMobileSection(listEl, sectionTasks){
+        listEl.innerHTML = "";
+        if (!sectionTasks.length){
+          const li = document.createElement("li");
+          li.className = "sectionLabel done";
+          li.textContent = "暂无事项";
+          listEl.appendChild(li);
+          return;
+        }
+
+        const pending = sectionTasks.filter(t=>!t.done);
+        const done = sectionTasks.filter(t=>t.done);
+
+        if (pending.length) {
+          const label = document.createElement("li");
+          label.className = "sectionLabel pending";
+          label.textContent = `待完成 · ${pending.length} 项`;
+          listEl.appendChild(label);
+        }
+
+        pending.forEach(t=>{
+          const li = document.createElement("li");
+          li.className = `task ${t.category} pending ${t.priority || "normal"}`;
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.disabled = true;
+          const title = document.createElement("div");
+          title.className = "title";
+          title.textContent = t.title;
+          const badge = document.createElement("span");
+          badge.className = "badge pending";
+          badge.textContent = t.priority === "urgent" ? "🔥 紧急 · 待完成" : "⬜ 待完成";
+          li.appendChild(checkbox);
+          li.appendChild(title);
+          li.appendChild(badge);
+          listEl.appendChild(li);
+        });
+
+        if (done.length) {
+          const label = document.createElement("li");
+          label.className = "sectionLabel done";
+          label.textContent = `已完成 · ${done.length} 项`;
+          listEl.appendChild(label);
+        }
+
+        done.forEach(t=>{
+          const li = document.createElement("li");
+          li.className = `task ${t.category} done ${t.priority || "normal"}`;
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = true;
+          checkbox.disabled = true;
+          const title = document.createElement("div");
+          title.className = "title";
+          title.textContent = t.title;
+          const badge = document.createElement("span");
+          badge.className = "badge done";
+          badge.textContent = t.priority === "urgent" ? "🔥 紧急 · 已完成" : "✅ 已完成";
+          li.appendChild(checkbox);
+          li.appendChild(title);
+          li.appendChild(badge);
+          listEl.appendChild(li);
+        });
+      }
+
+      renderMobileSection(el("mobileWorkList"), workAll);
+      renderMobileSection(el("mobileStudyList"), studyAll);
+
+      el("mobileNote").textContent = `只读查看：${pretty(payload.date || dateKey())}`;
+      return true;
+    }catch{
+      return false;
+    }
+  }
+
+  function importJsonFile(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const incoming = JSON.parse(reader.result);
+        if(!incoming || !incoming.archives) throw new Error("bad format");
+
+        state = incoming;
+
+        ensureDate(dateKey());
+        Object.keys(state.archives).forEach(k=>{
+          state.archives[k].forEach(t=>{
+            if(!t.priority) t.priority = "normal";
+            if(typeof t.done !== "boolean") t.done = false;
+          });
+        });
+
+        if(!state.lastViewedDate) state.lastViewedDate = dateKey();
+        saveState();
+        render();
+        alert("导入成功 ✅");
+      }catch{
+        alert("导入失败：文件格式不对（需要是本应用导出的 JSON）。");
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  }
+
+  function getAuthInput(){
+    const email = el("authEmail").value.trim();
+    const password = el("authPassword").value;
+    return { email, password };
+  }
+
+  async function handleLogin(){
+    const { email, password } = getAuthInput();
+    if (!email || !password){
+      setAuthStatus("请输入邮箱和密码");
+      return;
+    }
+    try{
+      await signInWithEmailAndPassword(auth, email, password);
+    }catch{
+      setAuthStatus("登录失败（账号或密码错误）");
+    }
+  }
+
+  async function handleRegister(){
+    const { email, password } = getAuthInput();
+    if (!email || !password){
+      setAuthStatus("请输入邮箱和密码");
+      return;
+    }
+    try{
+      await createUserWithEmailAndPassword(auth, email, password);
+    }catch{
+      setAuthStatus("注册失败（邮箱已存在或密码过短）");
+    }
+  }
+
+  async function handleLogout(){
+    try{
+      await signOut(auth);
+    }catch{
+      setAuthStatus("退出失败");
+    }
+  }
+
+  // 初始化
+  let state = loadState();
+  ensureDate(dateKey());
+
+  if (!renderMobileViewFromHash()){
+    el("pendingOnlyToggle").checked = !!state.showPendingOnly;
+    if (state.lastMobileLink) el("mobileLink").value = state.lastMobileLink;
+    refreshDatePicker();
+    render();
+  }
+
+  el("loginBtn").addEventListener("click", handleLogin);
+  el("registerBtn").addEventListener("click", handleRegister);
+  el("logoutBtn").addEventListener("click", handleLogout);
+
+  onAuthStateChanged(auth, (user)=>{
+    authUser = user || null;
+    setAuthUi(authUser);
+    if (authUser){
+      setAuthStatus(`已登录：${authUser.email || "已认证用户"}`);
+      startCloudSync(authUser);
+    } else {
+      if (cloudUnsub) cloudUnsub();
+      cloudUnsub = null;
+      cloudDocRef = null;
+      setAuthStatus("未登录（本地模式）");
+    }
+  });
+
+  el("addBtn").addEventListener("click", addTask);
+  el("clearDayBtn").addEventListener("click", clearDay);
+  el("datePicker").addEventListener("change", render);
+
+  el("goToday").addEventListener("click", ()=>{
+    el("datePicker").value = dateKey();
+    render();
+  });
+
+  el("taskTitle").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTask(); });
+  el("taskLink").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTask(); });
+
+  el("exportBtn").addEventListener("click", exportJson);
+  el("importBtn").addEventListener("click", ()=> el("importFile").click());
+  el("pendingOnlyToggle").addEventListener("change", (e)=>{
+    state.showPendingOnly = e.target.checked;
+    saveState();
+    render();
+  });
+  el("exportIcsBtn").addEventListener("click", exportStudyIcs);
+  el("makeMobileLinkBtn").addEventListener("click", ()=>generateMobileLink({ copy: true }));
+  el("copyMobileLinkBtn").addEventListener("click", async ()=>{
+    const v = el("mobileLink").value.trim();
+    if (!v) return;
+    await copyText(v);
+  });
+  el("importFile").addEventListener("change", (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(f) importJsonFile(f);
+    e.target.value = "";
+  });
+
+  // 22:55 自动生成链接并尝试复制（每天一次）
+  setInterval(async ()=>{
+    const now = new Date();
+    if (now.getHours() === 22 && now.getMinutes() === 55){
+      const today = dateKey();
+      if (state.lastMobileLinkDate !== today){
+        await generateMobileLink({ copy: true });
+      }
+    }
+  }, 30 * 1000);
+
+  // 22:55 Mac 弹窗提醒（页面需保持打开）
+  setInterval(()=>{
+    const now = new Date();
+    if (now.getHours() === 22 && now.getMinutes() === 55){
+      const today = dateKey();
+      if (state.lastAlertDate !== today){
+        const pending = getPendingStudy(today);
+        if (pending.length){
+          alert(`⏰ 22:55 学习提醒：还有 ${pending.length} 项未完成\n\n` + pending.map(t=>`- ${t.title}`).join("\n"));
+        } else {
+          alert("✅ 22:55 学习提醒：今日学习已完成");
+        }
+        state.lastAlertDate = today;
+        saveState();
+      }
+    }
+  }, 30 * 1000);
+</script>
+</body>
+</html>
